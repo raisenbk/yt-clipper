@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YT Clipper — Potong & Download Klip YouTube</title>
+<meta name="description" content="Paste link YouTube, pilih bagian yang kamu mau, pilih kualitas, langsung download klipnya.">
+<style>
+  :root{--bg:#0f1115;--card:#181b22;--line:#2a2f3a;--txt:#e8eaf0;--mut:#9aa3b2;--acc:#ff3d57;--ok:#22c55e}
+  *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--txt)}
+  .wrap{max-width:860px;margin:auto;padding:32px 16px 64px}
+  h1{font-size:clamp(1.6rem,4vw,2.3rem);margin:0 0 6px}h1 span{color:var(--acc)}
+  .sub{color:var(--mut);margin:0 0 24px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:16px}
+  .step{font-size:.8rem;color:var(--acc);font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  input,select{background:#0f1115;border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:12px;font-size:1rem}
+  input:focus,select:focus{outline:2px solid var(--acc);border-color:transparent}
+  #url{flex:1;min-width:220px}
+  button{background:var(--acc);color:#fff;border:0;border-radius:10px;padding:12px 18px;font-weight:700;font-size:1rem;cursor:pointer}
+  button.ghost{background:transparent;border:1px solid var(--line);color:var(--txt);font-weight:500;padding:10px 12px;font-size:.9rem}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .player{position:relative;aspect-ratio:16/9;border-radius:10px;overflow:hidden;background:#000}
+  .player iframe,#player{position:absolute;inset:0;width:100%;height:100%}
+  .meta{margin:12px 0 0;font-weight:600}.mut{color:var(--mut);font-size:.9rem}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:600px){.grid{grid-template-columns:1fr}}
+  label{display:block;font-size:.85rem;color:var(--mut);margin-bottom:6px}
+  .time{width:120px;text-align:center;font-variant-numeric:tabular-nums}
+  .bar{position:relative;height:10px;background:var(--line);border-radius:6px;margin:18px 0 6px}
+  .bar .sel{position:absolute;top:0;bottom:0;background:var(--acc);border-radius:6px}
+  .sum{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  .msg{margin-top:12px;font-size:.95rem}.err{color:#f87171}.ok{color:var(--ok)}
+  .hide{display:none}.spin{display:inline-block;width:14px;height:14px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:s 1s linear infinite;vertical-align:-2px;margin-right:6px}
+  @keyframes s{to{transform:rotate(360deg)}}
+  .chk{display:flex;gap:8px;align-items:flex-start;font-size:.85rem;color:var(--mut);margin:14px 0}
+  footer{color:var(--mut);font-size:.8rem;text-align:center;margin-top:24px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Potong video YouTube, <span>ambil bagian terbaiknya.</span></h1>
+  <p class="sub">Paste link → pilih menit → pilih kualitas → download. Gak perlu install aplikasi.</p>
+
+  <!-- STEP 1 -->
+  <div class="card">
+    <div class="step">1. Paste link YouTube</div>
+    <form class="row" id="fUrl">
+      <input id="url" type="url" placeholder="https://www.youtube.com/watch?v=..." required>
+      <button id="bLoad">Ambil Video</button>
+    </form>
+    <div id="m1" class="msg"></div>
+  </div>
+
+  <div id="editor" class="hide">
+    <!-- STEP 2 -->
+    <div class="card">
+      <div class="step">2. Pilih bagian yang mau dipotong</div>
+      <div class="player"><div id="player"></div></div>
+      <p class="meta" id="title"></p>
+      <p class="mut" id="dur"></p>
+
+      <div class="grid">
+        <div>
+          <label for="tStart">Mulai (jj:mm:dd)</label>
+          <div class="row">
+            <input id="tStart" class="time" value="00:00:00">
+            <button class="ghost" data-set="start" type="button">⏱ Ambil posisi sekarang</button>
+          </div>
+        </div>
+        <div>
+          <label for="tEnd">Selesai (jj:mm:dd)</label>
+          <div class="row">
+            <input id="tEnd" class="time" value="00:00:00">
+            <button class="ghost" data-set="end" type="button">⏱ Ambil posisi sekarang</button>
+          </div>
+        </div>
+      </div>
+      <div class="bar"><div class="sel" id="sel"></div></div>
+      <div class="sum">
+        <span class="mut">Durasi klip: <b id="clipLen">0:00</b></span>
+        <button class="ghost" id="bPreview" type="button">▶ Preview potongan</button>
+      </div>
+    </div>
+
+    <!-- STEP 3 & 4 -->
+    <div class="card">
+      <div class="step">3. Pilih kualitas & download</div>
+      <div class="row">
+        <select id="quality"></select>
+        <button id="bDl" type="button">⬇ Download Klip</button>
+      </div>
+      <label class="chk"><input type="checkbox" id="agree"> Saya pemilik konten ini atau punya izin untuk mengunduhnya, dan memakainya sesuai hak cipta.</label>
+      <div id="m2" class="msg"></div>
+    </div>
+  </div>
+
+  <footer>Gunakan hanya untuk konten milik sendiri / berlisensi bebas. Hormati hak cipta kreator.</footer>
+</div>
+
+<script src="https://www.youtube.com/iframe_api"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+let player, info = null, previewTimer;
+
+const toSec = (t) => {
+  const p = String(t).trim().split(':').map(Number);
+  if (p.some(isNaN)) return NaN;
+  return p.reduce((a, v) => a * 60 + v, 0);
+};
+const toHMS = (s) => {
+  s = Math.max(0, Math.floor(s));
+  return [s / 3600, (s % 3600) / 60, s % 60].map(v => String(Math.floor(v)).padStart(2, '0')).join(':');
+};
+const short = (s) => toHMS(s).replace(/^00:/, '');
+const msg = (el, t, cls = '') => { el.className = 'msg ' + cls; el.innerHTML = t; };
+
+// STEP 1: ambil info
+$('#fUrl').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = $('#bLoad');
+  btn.disabled = true; msg($('#m1'), '<span class="spin"></span>Membaca video...');
+  try {
+    const r = await fetch('/api/info?url=' + encodeURIComponent($('#url').value.trim()));
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error);
+    info = d;
+    $('#title').textContent = d.title;
+    $('#dur').textContent = 'Durasi video: ' + toHMS(d.duration);
+    $('#tStart').value = toHMS(0);
+    $('#tEnd').value = toHMS(Math.min(d.duration, 600));
+    $('#quality').innerHTML = d.qualities.map(h => `<option value="${h}">${h}p${h >= 720 ? ' HD' : ''}</option>`).join('')
+      + '<option value="audio">Audio saja (MP3)</option>';
+    const def = d.qualities.find(h => h <= 720); if (def) $('#quality').value = def;
+    loadPlayer(d.id);
+    $('#editor').classList.remove('hide');
+    msg($('#m1'), '✓ Video siap dipotong', 'ok');
+    updateBar();
+  } catch (err) {
+    msg($('#m1'), err.message || 'Terjadi kesalahan.', 'err');
+  } finally { btn.disabled = false; }
+});
+
+function loadPlayer(id) {
+  if (player && player.loadVideoById) return player.cueVideoById(id);
+  player = new YT.Player('player', { videoId: id, playerVars: { rel: 0, modestbranding: 1 } });
+}
+
+// STEP 2: atur rentang
+document.querySelectorAll('[data-set]').forEach(b => b.addEventListener('click', () => {
+  if (!player || !player.getCurrentTime) return;
+  $(b.dataset.set === 'start' ? '#tStart' : '#tEnd').value = toHMS(player.getCurrentTime());
+  updateBar();
+}));
+['#tStart', '#tEnd'].forEach(s => $(s).addEventListener('input', updateBar));
+
+function range() { return { s: toSec($('#tStart').value), e: toSec($('#tEnd').value) }; }
+function validRange() {
+  const { s, e } = range();
+  if (isNaN(s) || isNaN(e)) return 'Format waktu salah. Contoh: 00:40:00';
+  if (e <= s) return 'Waktu selesai harus setelah waktu mulai.';
+  if (info && e > info.duration) return 'Waktu selesai melebihi durasi video.';
+  if (e - s > 1800) return 'Durasi klip maksimal 30 menit.';
+  return '';
+}
+function updateBar() {
+  if (!info) return;
+  const { s, e } = range();
+  const ok = !isNaN(s) && !isNaN(e) && e > s;
+  $('#sel').style.left = ok ? (s / info.duration * 100) + '%' : 0;
+  $('#sel').style.width = ok ? (Math.min(e, info.duration) - s) / info.duration * 100 + '%' : 0;
+  $('#clipLen').textContent = ok ? short(e - s) : '-';
+}
+
+$('#bPreview').addEventListener('click', () => {
+  const err = validRange(); if (err) return msg($('#m2'), err, 'err');
+  const { s, e } = range();
+  player.seekTo(s, true); player.playVideo();
+  clearInterval(previewTimer);
+  previewTimer = setInterval(() => {
+    if (player.getCurrentTime() >= e) { player.pauseVideo(); clearInterval(previewTimer); }
+  }, 250);
+});
+
+// STEP 3-4: download
+$('#bDl').addEventListener('click', async () => {
+  const err = validRange(); if (err) return msg($('#m2'), err, 'err');
+  if (!$('#agree').checked) return msg($('#m2'), 'Centang persetujuan dulu ya.', 'err');
+  const { s, e } = range(), q = $('#quality').value, btn = $('#bDl');
+  btn.disabled = true;
+  msg($('#m2'), '<span class="spin"></span>Memotong & memproses klip... (bisa 1–3 menit, jangan tutup halaman)');
+  try {
+    const qs = new URLSearchParams({ url: $('#url').value.trim(), start: s, end: e, height: q });
+    const r = await fetch('/api/download?' + qs);
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Gagal download.');
+    const blob = await r.blob();
+    const name = (r.headers.get('Content-Disposition') || '').match(/filename="?([^"]+)"?/)?.[1] || 'clip.mp4';
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: name });
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    msg($('#m2'), '✓ Klip berhasil di-download!', 'ok');
+  } catch (err) {
+    msg($('#m2'), err.message, 'err');
+  } finally { btn.disabled = false; }
+});
+</script>
+</body>
+</html>

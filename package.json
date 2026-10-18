@@ -1,0 +1,8 @@
+{
+  "name": "yt-clipper",
+  "version": "1.0.0",
+  "description": "Potong & download klip YouTube berdasarkan rentang waktu dan kualitas",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": { "express": "^4.19.2" }
+}
